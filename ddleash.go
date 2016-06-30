@@ -1,6 +1,7 @@
 package ddleash
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,6 +29,7 @@ type Metric struct {
 }
 
 var (
+	metricsListWindow = 3600
 
 	ErrNotLoggedIn           = errors.New("DDLeash not logged in")
 	ErrDogweblCookieNotFound = errors.New("dogwebl cookie not found")
@@ -46,6 +48,16 @@ func urlForLogin(team string) *url.URL {
 	baseUrl.Path = "/account/login"
 	baseUrl.RawQuery = url.Values{
 		"redirect": {"f"},
+	}.Encode()
+
+	return baseUrl
+}
+
+func urlForMetricList(team string, window int) *url.URL {
+	baseUrl := urlForRoot(team)
+	baseUrl.Path = "/metric/list"
+	baseUrl.RawQuery = url.Values{
+		"window": {strconv.Itoa(window)},
 	}.Encode()
 
 	return baseUrl
@@ -96,16 +108,48 @@ func (leash *DDLeash) Login() error {
 	return nil
 }
 
-func (leash *DDLeash) FetchAllMetrics() ([]Metric, error) {
+func (leash *DDLeash) FetchAllMetrics() ([]*Metric, error) {
 	if !leash.hasLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
 
-	return []Metric{
-		Metric{Name: "foo"},
-		Metric{Name: "bar"},
-		Metric{Name: "baz"},
-	}, nil
+	// Fetch all metric names
+	metricListUrl := urlForMetricList(
+		leash.config.Team, metricsListWindow,
+	).String()
+	resp, err := leash.client.Get(metricListUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf(
+			"Invalid response for request %V: %V",
+			metricListUrl, resp,
+		)
+	}
+
+	// Decode the response
+	jsonResponse := &struct {
+		Metrics []string
+	}{}
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(jsonResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create & populate our Metrics
+	var metrics []*Metric
+	metrics = make([]*Metric, 0, len(jsonResponse.Metrics))
+	for _, name := range jsonResponse.Metrics {
+		metrics = append(metrics, &Metric{
+			Name: name,
+		})
+	}
+
+	return metrics, nil
+}
 
 func (leash *DDLeash) fetchDogwebl() (string, error) {
 	loginUrl := urlForLogin(leash.config.Team).String()
