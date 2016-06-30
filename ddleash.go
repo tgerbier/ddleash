@@ -69,6 +69,30 @@ func New(config Config) (*DDLeash, error) {
 
 func (leash *DDLeash) Login() error {
 	leash.hasLoggedIn = true
+
+	dogwebl, err := leash.fetchDogwebl()
+	if err != nil {
+		return err
+	}
+
+	form := url.Values{
+		"username":              {leash.config.Username},
+		"password":              {leash.config.Password},
+		"_authentication_token": {dogwebl},
+	}
+	loginUrl := urlForLogin(leash.config.Team).String()
+	resp, err := leash.client.PostForm(loginUrl, form)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf(
+			"Invalid response for request %V with params %V: %V",
+			loginUrl, form, resp,
+		)
+	}
+
 	return nil
 }
 
