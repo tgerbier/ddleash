@@ -108,7 +108,7 @@ func (leash *DDLeash) Login() error {
 	return nil
 }
 
-func (leash *DDLeash) FetchAllMetrics() ([]*Metric, error) {
+func (leash *DDLeash) FetchAllMetricNames() ([]string, error) {
 	if !leash.hasLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
@@ -139,16 +139,7 @@ func (leash *DDLeash) FetchAllMetrics() ([]*Metric, error) {
 		return nil, err
 	}
 
-	// Create & populate our Metrics
-	var metrics []*Metric
-	metrics = make([]*Metric, 0, len(jsonResponse.Metrics))
-	for _, name := range jsonResponse.Metrics {
-		metrics = append(metrics, &Metric{
-			Name: name,
-		})
-	}
-
-	return metrics, nil
+	return jsonResponse.Metrics, nil
 }
 
 func (leash *DDLeash) fetchDogwebl() (string, error) {
