@@ -24,10 +24,6 @@ type DDLeash struct {
 	hasLoggedIn bool
 }
 
-type Metric struct {
-	Name string
-}
-
 var (
 	metricsListWindow = 3600
 
