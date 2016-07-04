@@ -67,7 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	metrics, err := ddleash.FetchAllMetrics()
+	metrics, err := ddleash.FetchAllMetricNames()
 
 	if err != nil {
 		fmt.Println(err)

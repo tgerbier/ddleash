@@ -24,10 +24,6 @@ type DDLeash struct {
 	hasLoggedIn bool
 }
 
-type Metric struct {
-	Name string
-}
-
 var (
 	metricsListWindow = 3600
 
@@ -58,6 +54,16 @@ func urlForMetricList(team string, window int) *url.URL {
 	baseUrl.Path = "/metric/list"
 	baseUrl.RawQuery = url.Values{
 		"window": {strconv.Itoa(window)},
+	}.Encode()
+
+	return baseUrl
+}
+
+func urlForMetric(team string, name string) *url.URL {
+	baseUrl := urlForRoot(team)
+	baseUrl.Path = "/metric/metric_metadata"
+	baseUrl.RawQuery = url.Values{
+		"metrics[]": {name},
 	}.Encode()
 
 	return baseUrl
@@ -108,7 +114,7 @@ func (leash *DDLeash) Login() error {
 	return nil
 }
 
-func (leash *DDLeash) FetchAllMetrics() ([]*Metric, error) {
+func (leash *DDLeash) FetchAllMetricNames() ([]string, error) {
 	if !leash.hasLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
@@ -139,16 +145,40 @@ func (leash *DDLeash) FetchAllMetrics() ([]*Metric, error) {
 		return nil, err
 	}
 
-	// Create & populate our Metrics
-	var metrics []*Metric
-	metrics = make([]*Metric, 0, len(jsonResponse.Metrics))
-	for _, name := range jsonResponse.Metrics {
-		metrics = append(metrics, &Metric{
-			Name: name,
-		})
+	return jsonResponse.Metrics, nil
+}
+
+func (leash *DDLeash) FetchMetric(name string) (*Metric, error) {
+	if !leash.hasLoggedIn {
+		return nil, ErrNotLoggedIn
 	}
 
-	return metrics, nil
+	// Fetch the metric
+	metricUrl := urlForMetric(
+		leash.config.Team, name,
+	).String()
+	resp, err := leash.client.Get(metricUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf(
+			"Invalid response for request %V: %V",
+			metricUrl, resp,
+		)
+	}
+
+	// Decode the response
+	var jsonResponse map[string]*Metric
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&jsonResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResponse[name].Name = name
+	return jsonResponse[name], nil
 }
 
 func (leash *DDLeash) fetchDogwebl() (string, error) {
