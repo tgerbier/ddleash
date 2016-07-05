@@ -19,6 +19,12 @@ type Metric struct {
 	Interval    uint
 }
 
+type MetricHostsTags struct {
+	Hosts       []string
+	Tags        []string
+	NumContexts int `json:"num_contexts"`
+}
+
 func (metricType *MetricType) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
