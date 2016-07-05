@@ -24,9 +24,11 @@ type DDLeash struct {
 	hasLoggedIn bool
 }
 
-var (
-	metricsListWindow = 3600
+const (
+	window = 3600
+)
 
+var (
 	ErrNotLoggedIn           = errors.New("DDLeash not logged in")
 	ErrDogweblCookieNotFound = errors.New("dogwebl cookie not found")
 )
@@ -121,7 +123,7 @@ func (leash *DDLeash) FetchAllMetricNames() ([]string, error) {
 
 	// Fetch all metric names
 	metricListUrl := urlForMetricList(
-		leash.config.Team, metricsListWindow,
+		leash.config.Team, window,
 	).String()
 	resp, err := leash.client.Get(metricListUrl)
 	if err != nil {
