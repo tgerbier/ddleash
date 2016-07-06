@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 
 	"github.com/MattHauglustaine/ddleash"
 )
@@ -93,14 +93,13 @@ func computeContextsSum(leash *ddleash.DDLeash) (int, error) {
 func main() {
 	leash, err := initDDLeash()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	contextsSum, err := computeContextsSum(leash)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
+	}
 	}
 
 	fmt.Printf("Datadog handles %d contexts.\n", contextsSum)
