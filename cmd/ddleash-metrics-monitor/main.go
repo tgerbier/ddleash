@@ -1,14 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
+
+	"github.com/DataDog/datadog-go/statsd"
 
 	"github.com/MattHauglustaine/ddleash"
 )
 
 const (
 	parallelFetches = 20
+
+	dogstatsdUrl = "dogstatsd:8125"
 )
 
 func initDDLeash() (*ddleash.DDLeash, error) {
@@ -60,7 +63,6 @@ func consumeMetrics(
 		}
 
 		metricNumContexts <- hostsTags.NumContexts
-		fmt.Printf("Processed %q\n", name)
 	}
 }
 
@@ -91,16 +93,26 @@ func computeContextsSum(leash *ddleash.DDLeash) (int, error) {
 }
 
 func main() {
+	// Init DDLeash & our DD StatsD connection
 	leash, err := initDDLeash()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	statsdClient, err := statsd.New(dogstatsdUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Compute the number of contexts on Datadog
 	contextsSum, err := computeContextsSum(leash)
 	if err != nil {
 		log.Fatal(err)
 	}
-	}
 
-	fmt.Printf("Datadog handles %d contexts.\n", contextsSum)
+	// Send this sum to Datadog
+	err = statsdClient.Gauge("foo.bar.baz", float64(contextsSum), nil, 1)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
