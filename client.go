@@ -119,7 +119,7 @@ func (c *Client) Login() error {
 	return nil
 }
 
-func (c *Client) FetchAllMetricNames() ([]string, error) {
+func (c *Client) FetchAllMetricNames(window int) ([]string, error) {
 	if !c.isLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
@@ -180,7 +180,7 @@ func (c *Client) FetchMetric(name string) (*Metric, error) {
 	return jsonResp[name], nil
 }
 
-func (c *Client) FetchMetricHostsTags(name string) (*MetricHostsTags, error) {
+func (c *Client) FetchMetricHostsTags(name string, window int) (*MetricHostsTags, error) {
 	if !c.isLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
