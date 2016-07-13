@@ -12,7 +12,7 @@ import (
 
 type Account struct {
 	Team     string
-	Username string
+	User     string
 	Password string
 }
 
@@ -101,7 +101,7 @@ func (c *Client) Login() error {
 	}
 
 	form := url.Values{
-		"username":              {c.account.Username},
+		"username":              {c.account.User},
 		"password":              {c.account.Password},
 		"_authentication_token": {dogwebl},
 	}
