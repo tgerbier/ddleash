@@ -84,11 +84,11 @@ func New(account Account) *Client {
 	return &Client{
 		account:   account,
 		cookieJar: cookieJar,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Jar: cookieJar,
 		},
-		hasLoggedIn: false,
-	}, nil
+		isLoggedIn: false,
+	}
 }
 
 func (c *Client) Login() error {
@@ -128,7 +128,7 @@ func (c *Client) FetchAllMetricNames() ([]string, error) {
 	metricListUrl := urlForMetricList(
 		c.account.Team, window,
 	).String()
-	resp, err := c.account.Get(metricListUrl)
+	resp, err := c.httpClient.Get(metricListUrl)
 	if err != nil {
 		return nil, err
 	}
