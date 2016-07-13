@@ -10,23 +10,19 @@ import (
 	"strconv"
 )
 
-type Config struct {
+type Account struct {
 	Team     string
-	Username string
+	User     string
 	Password string
 }
 
-type DDLeash struct {
-	config    Config
-	cookieJar http.CookieJar
-	client    *http.Client
+type Client struct {
+	account    Account
+	cookieJar  http.CookieJar
+	httpClient *http.Client
 
-	hasLoggedIn bool
+	isLoggedIn bool
 }
-
-const (
-	window = 3600
-)
 
 var (
 	ErrNotLoggedIn           = errors.New("DDLeash not logged in")
@@ -82,37 +78,32 @@ func urlForMetricHostsTags(team string, name string, window int) *url.URL {
 	return baseUrl
 }
 
-func New(config Config) (*DDLeash, error) {
-	cookieJar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
+func New(account Account) *Client {
+	cookieJar, _ := cookiejar.New(nil)
 
-	return &DDLeash{
-		config:    config,
+	return &Client{
+		account:   account,
 		cookieJar: cookieJar,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Jar: cookieJar,
 		},
-		hasLoggedIn: false,
-	}, nil
+		isLoggedIn: false,
+	}
 }
 
-func (leash *DDLeash) Login() error {
-	leash.hasLoggedIn = true
-
-	dogwebl, err := leash.fetchDogwebl()
+func (c *Client) Login() error {
+	dogwebl, err := c.fetchDogwebl()
 	if err != nil {
 		return err
 	}
 
 	form := url.Values{
-		"username":              {leash.config.Username},
-		"password":              {leash.config.Password},
+		"username":              {c.account.User},
+		"password":              {c.account.Password},
 		"_authentication_token": {dogwebl},
 	}
-	loginUrl := urlForLogin(leash.config.Team).String()
-	resp, err := leash.client.PostForm(loginUrl, form)
+	loginUrl := urlForLogin(c.account.Team).String()
+	resp, err := c.httpClient.PostForm(loginUrl, form)
 	if err != nil {
 		return err
 	}
@@ -124,19 +115,20 @@ func (leash *DDLeash) Login() error {
 		)
 	}
 
+	c.isLoggedIn = true
 	return nil
 }
 
-func (leash *DDLeash) FetchAllMetricNames() ([]string, error) {
-	if !leash.hasLoggedIn {
+func (c *Client) FetchAllMetricNames(window int) ([]string, error) {
+	if !c.isLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
 
 	// Fetch all metric names
 	metricListUrl := urlForMetricList(
-		leash.config.Team, window,
+		c.account.Team, window,
 	).String()
-	resp, err := leash.client.Get(metricListUrl)
+	resp, err := c.httpClient.Get(metricListUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -157,16 +149,16 @@ func (leash *DDLeash) FetchAllMetricNames() ([]string, error) {
 	return jsonResp.Metrics, nil
 }
 
-func (leash *DDLeash) FetchMetric(name string) (*Metric, error) {
-	if !leash.hasLoggedIn {
+func (c *Client) FetchMetric(name string) (*Metric, error) {
+	if !c.isLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
 
 	// Fetch the metric
 	metricUrl := urlForMetric(
-		leash.config.Team, name,
+		c.account.Team, name,
 	).String()
-	resp, err := leash.client.Get(metricUrl)
+	resp, err := c.httpClient.Get(metricUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -188,16 +180,16 @@ func (leash *DDLeash) FetchMetric(name string) (*Metric, error) {
 	return jsonResp[name], nil
 }
 
-func (leash *DDLeash) FetchMetricHostsTags(name string) (*MetricHostsTags, error) {
-	if !leash.hasLoggedIn {
+func (c *Client) FetchMetricHostsTags(name string, window int) (*MetricHostsTags, error) {
+	if !c.isLoggedIn {
 		return nil, ErrNotLoggedIn
 	}
 
 	// Fetch the metric
 	metricUrl := urlForMetricHostsTags(
-		leash.config.Team, name, window,
+		c.account.Team, name, window,
 	).String()
-	resp, err := leash.client.Get(metricUrl)
+	resp, err := c.httpClient.Get(metricUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -218,9 +210,9 @@ func (leash *DDLeash) FetchMetricHostsTags(name string) (*MetricHostsTags, error
 	return &hostsTags, nil
 }
 
-func (leash *DDLeash) fetchDogwebl() (string, error) {
-	loginUrl := urlForLogin(leash.config.Team).String()
-	resp, err := leash.client.Get(loginUrl)
+func (c *Client) fetchDogwebl() (string, error) {
+	loginUrl := urlForLogin(c.account.Team).String()
+	resp, err := c.httpClient.Get(loginUrl)
 	if err != nil {
 		return "", err
 	}
@@ -232,7 +224,7 @@ func (leash *DDLeash) fetchDogwebl() (string, error) {
 		)
 	}
 
-	ddCookies := leash.cookieJar.Cookies(urlForRoot(leash.config.Team))
+	ddCookies := c.cookieJar.Cookies(urlForRoot(c.account.Team))
 
 	for _, ddCookie := range ddCookies {
 		if ddCookie.Name == "dogwebl" {
