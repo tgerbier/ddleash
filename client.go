@@ -78,11 +78,8 @@ func urlForMetricHostsTags(team string, name string, window int) *url.URL {
 	return baseUrl
 }
 
-func New(account Account) (*Client, error) {
-	cookieJar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
+func New(account Account) *Client {
+	cookieJar, _ := cookiejar.New(nil)
 
 	return &Client{
 		account:   account,
