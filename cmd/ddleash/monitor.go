@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/DataDog/datadog-go/statsd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/matryer/try.v1"
@@ -61,6 +62,11 @@ func runMonitorCmd(cmd *cobra.Command, args []string) {
 }
 
 func monitorMetricsCount(client *ddleash.Client, _ []string) error {
+	statsdClient, err := statsd.New(viper.GetString("dogstatsd.url"))
+	if err != nil {
+		return err
+	}
+
 	if err := client.Login(); err != nil {
 		return err
 	}
@@ -79,7 +85,16 @@ func monitorMetricsCount(client *ddleash.Client, _ []string) error {
 	case err := <-errs:
 		return err
 	case sum := <-out:
-		fmt.Println(sum)
+		// Send this sum to Datadog
+		err = statsdClient.Gauge(
+			"foo.bar.baz",
+			float64(sum),
+			nil,
+			1,
+		)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 }
