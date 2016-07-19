@@ -18,9 +18,10 @@ const (
 // listCmd represents the list command
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all known metrics",
-	Long:  "List all metric names known by Datadog, sorted alphabetically.",
-	Run:   runListCmd,
+	Short: "List a Datadog object (metric, ...)",
+	Long: `List a Datadog object. For now, only the "metric" object can be
+listed.`,
+	Run: runListCmd,
 }
 
 func init() {
@@ -28,19 +29,19 @@ func init() {
 }
 
 func runListCmd(cmd *cobra.Command, args []string) {
-	item := "metrics"
+	object := "metrics"
 	listArgs := []string{}
 	if len(args) > 0 {
-		item = args[0]
+		object = args[0]
 		listArgs = args[1:]
 	}
 
 	listFunc, ok := map[string]func(*ddleash.Client, []string) error{
 		"metrics": listMetrics,
-	}[item]
+	}[object]
 
 	if !ok {
-		fmt.Printf("Unknown item to list: %q\n", item)
+		fmt.Printf("Unknown object to list: %q\n", object)
 		os.Exit(-1)
 	}
 
