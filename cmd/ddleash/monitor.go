@@ -28,8 +28,17 @@ var monitorCmd = &cobra.Command{
 	Run: runMonitorCmd,
 }
 
+var overriddenMetricName string
+
 func init() {
 	RootCmd.AddCommand(monitorCmd)
+
+	monitorCmd.PersistentFlags().StringVar(
+		&overriddenMetricName,
+		"name",
+		"",
+		"metric name (default is dependent on the monitored value)",
+	)
 }
 
 func runMonitorCmd(cmd *cobra.Command, args []string) {
@@ -86,8 +95,13 @@ func monitorMetricsCount(client *ddleash.Client, _ []string) error {
 		return err
 	case sum := <-out:
 		// Send this sum to Datadog
+		name := "ddleash.metrics.count"
+		if overriddenMetricName != "" {
+			name = overriddenMetricName
+		}
+
 		err = statsdClient.Gauge(
-			"foo.bar.baz",
+			name,
 			float64(sum),
 			nil,
 			1,
