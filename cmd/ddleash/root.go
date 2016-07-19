@@ -30,7 +30,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	cobra.OnInitialize(assertDatadogAccountConfig)
+	cobra.OnInitialize(assertConfig)
 
 	RootCmd.PersistentFlags().StringVar(
 		&cfgFile,
@@ -57,11 +57,15 @@ func initConfig() {
 	}
 }
 
-// assertDatadogAccountConfig returns an error if no Datadog account
-// info (team, user, and password) are set.
-func assertDatadogAccountConfig() {
-	for _, subKey := range []string{"team", "user", "password"} {
-		key := "datadog." + subKey
+// assertConfig returns an error if the mandatory config values are
+// not set.
+func assertConfig() {
+	for _, key := range []string{
+		"datadog.team",
+		"datadog.user",
+		"datadog.password",
+		"dogstatsd.url",
+	} {
 		if !viper.IsSet(key) {
 			fmt.Println(fmt.Sprintf(
 				"Invalid configuration: %q must be set.",
