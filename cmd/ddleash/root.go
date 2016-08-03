@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,14 +47,26 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
+	// Bind env vars, since we have nested config keys
+	viper.BindEnv("datadog.team", "DATADOG_TEAM")
+	viper.BindEnv("datadog.user", "DATADOG_USER")
+	viper.BindEnv("datadog.password", "DATADOG_PASSWORD")
+	viper.BindEnv("dogstatsd.url", "DOGSTATSD_URL")
+
 	viper.SetConfigName(".ddleash") // name of config file (without extension)
 	viper.AddConfigPath("$HOME")    // adding home directory as first search path
+	viper.AddConfigPath(".")        // adding current directory as first search path
 	viper.AutomaticEnv()            // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		// viper returns an `unsupported config type ""` error
+		// if it can't find a file. We just ignore it.
+		// https://github.com/spf13/viper/issues/210
+		if !strings.HasSuffix(err.Error(), `Type ""`) {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 	}
 }
 
