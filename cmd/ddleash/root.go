@@ -47,6 +47,12 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
+	// Bind env vars, since we have nested config keys
+	viper.BindEnv("datadog.team", "DATADOG_TEAM")
+	viper.BindEnv("datadog.user", "DATADOG_USER")
+	viper.BindEnv("datadog.password", "DATADOG_PASSWORD")
+	viper.BindEnv("dogstatsd.url", "DOGSTATSD_URL")
+
 	viper.SetConfigName(".ddleash") // name of config file (without extension)
 	viper.AddConfigPath("$HOME")    // adding home directory as first search path
 	viper.AddConfigPath(".")        // adding current directory as first search path
