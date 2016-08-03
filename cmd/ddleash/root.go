@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -52,8 +53,13 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		// viper returns an `unsupported config type ""` error
+		// if it can't find a file. We just ignore it.
+		// https://github.com/spf13/viper/issues/210
+		if !strings.HasSuffix(err.Error(), `Type ""`) {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 	}
 }
 
